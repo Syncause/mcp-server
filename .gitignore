@@ -1,0 +1,12 @@
+.agent/
+.ai/
+.claude/
+.continue/
+.idea/
+.vscode/
+.DS_Store
+*.exe
+*.log
+dist/
+node_modules/
+out/

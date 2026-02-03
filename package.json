@@ -1,0 +1,35 @@
+{
+  "name": "@syncause/debug-mcp",
+  "version": "0.1.8",
+  "description": "Syncause Debug MCP Server",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "type": "module",
+  "bin": {
+    "syncause-debug-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepare": "npm run build",
+    "release": "standard-version"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "pino-pretty": "^13.1.3",
+    "standard-version": "^9.5.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.2",
+    "axios": "^1.13.2",
+    "pino": "^10.1.0",
+    "posthog-node": "^5.21.2",
+    "uuid": "^13.0.0",
+    "zod": "^4.3.5"
+  }
+}
