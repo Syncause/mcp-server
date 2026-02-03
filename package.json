@@ -1,6 +1,6 @@
 {
   "name": "@syncause/debug-mcp",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "Syncause Debug MCP Server",
   "publishConfig": {
     "registry": "https://registry.npmjs.org/"
