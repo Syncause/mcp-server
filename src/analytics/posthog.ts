@@ -1,5 +1,6 @@
 import { PostHog } from 'posthog-node';
 import { logger } from '../common/logger.js';
+import { apiKeyFingerprint } from './fingerprint.js';
 
 /**
  * PostHog Analytics Client
@@ -26,7 +27,16 @@ class PostHogClient {
             this.apiKey = apiKey;
             this.client = new PostHog(apiKey, {
                 host: host || 'https://app.posthog.com',
+                disableGeoip: true, // Reduce external network calls
+                flushAt: 10, // Batch events before sending
+                flushInterval: 30000, // Flush every 30 seconds
             });
+
+            // Redirect PostHog internal errors to file logger instead of console
+            this.client.on('error', (err: Error) => {
+                logger.warn({ err: err.message }, 'PostHog error (silently logged)');
+            });
+
             this.enabled = true;
             logger.info('PostHog client initialized successfully');
         } catch (error: any) {
@@ -59,7 +69,7 @@ class PostHogClient {
         try {
             const eventName = `tool_call_start_${toolName}`;
             this.client.capture({
-                distinctId: userId,
+                distinctId: apiKeyFingerprint(userId),
                 event: eventName,
                 properties: {
                     toolCallId,
@@ -86,7 +96,7 @@ class PostHogClient {
         try {
             const eventName = `tool_call_success_${toolName}`;
             this.client.capture({
-                distinctId: userId,
+                distinctId: apiKeyFingerprint(userId),
                 event: eventName,
                 properties: {
                     toolCallId,
@@ -112,7 +122,7 @@ class PostHogClient {
         try {
             const eventName = `tool_call_error_${toolName}`;
             this.client.capture({
-                distinctId: userId,
+                distinctId: apiKeyFingerprint(userId),
                 event: eventName,
                 properties: {
                     toolCallId,
@@ -137,7 +147,7 @@ class PostHogClient {
 
         try {
             this.client.capture({
-                distinctId: userId,
+                distinctId: apiKeyFingerprint(userId),
                 event: 'mcp_server_start',
                 properties: {
                     ingestSource: "mcp",
