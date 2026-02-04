@@ -10,7 +10,13 @@ import { handleSetupProject } from "./skills.js";
 import { state } from "../common/state.js";
 import { posthog } from "../analytics/posthog.js";
 
-export async function startMcpServer(transport: Transport, projectManager?: ProjectManager, apiKey?: string) {
+let mcpServerTransport: Transport | undefined;
+
+export function setMcpServerTransport(transport: Transport) {
+  mcpServerTransport = transport;
+}
+
+export async function startMcpServer(projectManager?: ProjectManager) {
   // Create MCP Server instance
   const server = new McpServer(
     {
@@ -28,6 +34,16 @@ export async function startMcpServer(transport: Transport, projectManager?: Proj
   // Helper to handle tool calls with logging and proper wrapping
   const handleToolCall = async (name: string, args: any) => {
     // 1. Check API Key Status (from background validation)
+    if (state.isApiKeyValid === undefined) {
+      return {
+        content: [{
+          type: "text" as const,
+          text: "Syncause is initializing (fetching/validating API key). Please wait a few seconds and try again."
+        }],
+        isError: true
+      };
+    }
+
     if (state.isApiKeyValid === false) {
       return {
         content: [{
@@ -78,7 +94,7 @@ export async function startMcpServer(transport: Transport, projectManager?: Proj
     logger.info({ tool: name, args: finalArgs }, `Calling tool ${name}`);
 
     // Track tool call start and get toolCallId
-    const userId = apiKey || "unknown";
+    const userId = state.apiKey || "unknown";
     const toolCallId = posthog.trackToolCall(name, userId, {
       projectId: finalArgs.projectId
     });
@@ -86,7 +102,17 @@ export async function startMcpServer(transport: Transport, projectManager?: Proj
     const startTime = Date.now();
 
     try {
-      const result = await RpcClient.call(transport, name, finalArgs);
+      if (!mcpServerTransport) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: "Syncause Debug Daemon is not ready. Please wait for initialization to complete."
+          }],
+          isError: true
+        };
+      }
+
+      const result = await RpcClient.call(mcpServerTransport, name, finalArgs);
 
       // Track success
       const duration = Date.now() - startTime;
@@ -185,11 +211,25 @@ export async function startMcpServer(transport: Transport, projectManager?: Proj
       projectPath: z.string().describe("The local absolute path of the project."),
     }),
   }, async (args: any) => {
-    const userId = apiKey || "unknown";
+    // Check API Key Status
+    if (state.isApiKeyValid === undefined) {
+      return {
+        content: [{ type: "text", text: "Syncause is initializing. Please wait a few seconds and try again." }],
+        isError: true
+      };
+    }
+    if (state.isApiKeyValid === false) {
+      return {
+        content: [{ type: "text", text: `CRITICAL ERROR: API Key validation failed: ${state.apiKeyError}` }],
+        isError: true
+      };
+    }
+
+    const userId = state.apiKey || "unknown";
     const startTime = Date.now();
     const toolCallId = posthog.trackToolCall("setup_project", userId, { projectPath: args.projectPath });
     try {
-      const result = await handleSetupProject(args, projectManager, apiKey);
+      const result = await handleSetupProject(args, projectManager, state.apiKey);
       posthog.trackToolSuccess("setup_project", userId, toolCallId, Date.now() - startTime);
       return result;
     } catch (error: any) {
@@ -202,7 +242,21 @@ export async function startMcpServer(transport: Transport, projectManager?: Proj
     description: "List all projects that have already been initialized. This is the preferred way to discover available 'projectId's and their corresponding paths without re-initializing them.",
     inputSchema: z.object({}),
   }, async () => {
-    const userId = apiKey || "unknown";
+    // Check API Key Status
+    if (state.isApiKeyValid === undefined) {
+      return {
+        content: [{ type: "text", text: "Syncause is initializing. Please wait a few seconds and try again." }],
+        isError: true
+      };
+    }
+    if (state.isApiKeyValid === false) {
+      return {
+        content: [{ type: "text", text: `CRITICAL ERROR: API Key validation failed: ${state.apiKeyError}` }],
+        isError: true
+      };
+    }
+
+    const userId = state.apiKey || "unknown";
     const startTime = Date.now();
     const toolCallId = posthog.trackToolCall("get_project_list", userId);
     try {

@@ -31,6 +31,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.25.2",
     "axios": "^1.13.2",
+    "node-machine-id": "^1.1.12",
     "pino": "^10.1.0",
     "posthog-node": "^5.21.2",
     "uuid": "^13.0.0",

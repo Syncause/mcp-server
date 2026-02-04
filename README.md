@@ -8,7 +8,7 @@ Syncause captures **runtime truth** (stack traces, logs, request/response, funct
 
 ## Prerequisites
 - Get a free API key at [syn-cause.com/dashboard](https://syn-cause.com/dashboard)
-- Node.js 18+ or newer
+- Node.js 22.22.0+ or newer
 
 ## Installation
 Common MCP Configuration works in most of the tools:

@@ -2,7 +2,7 @@
 import { spawn } from "child_process";
 import fs from "fs";
 import { createTransport, validateApiKey } from "./transport/index.js";
-import { startMcpServer } from "./mcp/server.js";
+import { startMcpServer, setMcpServerTransport } from "./mcp/server.js";
 import { logger, logFile } from "./common/logger.js";
 import { certFile } from "./common/paths.js";
 import { VERSION, APP_NAME } from "./common/version.js";
@@ -10,6 +10,7 @@ import { projectManager } from "./common/project-manager.js";
 import { DaemonMonitor } from "./common/daemon-monitor.js";
 import { state } from "./common/state.js";
 import { posthog } from "./analytics/posthog.js";
+import { initializeAnonymousApiKey } from "./common/anonymous-api-key.js";
 
 /**
  * Environment Configuration
@@ -42,14 +43,13 @@ function loadConfig(): Config {
     }
   }
 
+  // Allow empty apiKey - will be initialized asynchronously later
   if (!apiKey) {
-    console.error("API_KEY environment variable is not set.");
-    logger.error("API_KEY environment variable is not set and no valid certificate found. Exiting...");
-    process.exit(1);
+    logger.info("No API Key found, will initialize anonymously...");
   }
 
   return {
-    apiKey,
+    apiKey: apiKey || "", // Return empty string if no API key found
     mode: (process.env.MODE || "local") as "local" | "remote",
     skipDaemon: process.env.SKIP_DAEMON === "true",
     npmRegistry: process.env.NPM_REGISTRY,
@@ -131,14 +131,6 @@ async function main() {
   logger.info(`Starting MCP server, mode: ${config.mode}, skipDaemon: ${config.skipDaemon}`);
   logger.error(`[MCP Server] ${APP_NAME} v${VERSION}, Log file: ${logFile}`);
 
-  // Track server start 
-  posthog.trackServerStart(config.apiKey, {});
-
-  const transport = createTransport({
-    mode: config.mode,
-    apiKey: config.apiKey,
-  });
-
   let daemonMonitor: DaemonMonitor | undefined;
 
   // Setup process exit handling
@@ -156,18 +148,45 @@ async function main() {
     void handleExit("stdin end");
   });
   process.stdin.resume();
-
-  // Start business logic
-  projectManager.startScanning();
-  const mcpServerPromise = startMcpServer(transport, projectManager, config.apiKey);
-
+  projectManager.startScanning();  
+  const mcpServerPromise = startMcpServer(projectManager);
   // Background initialization to avoid blocking MCP tools exposure
   (async () => {
     try {
-      // 1. Validate API Key (Parallel with MCP server startup)
+      // 1. Initialize API Key (if not present, get anonymous key)
+      let actualApiKey = config.apiKey;
+      
+      if (!actualApiKey || actualApiKey.trim().length === 0) {
+        logger.info("No API Key found, initializing anonymous API Key...");
+        try {
+          actualApiKey = await initializeAnonymousApiKey();
+          config.apiKey = actualApiKey; // Sync back to config for validation
+          state.apiKey = actualApiKey;
+          
+          logger.info("Anonymous API Key initialized successfully");
+        } catch (err: any) {
+          logger.error({ err: err.message }, "Failed to initialize anonymous API Key");
+          state.isApiKeyValid = false;
+          state.apiKeyError = `Failed to initialize API Key: ${err.message}`;
+          return; // Exit early if we can't get an API key
+        }
+      } else {
+          state.apiKey = actualApiKey;
+      }
+      
+      // Track server start with finalized API key
+      posthog.trackServerStart(state.apiKey, {});
+      
+      // 2. Validate API Key (Parallel with MCP server startup)
       await validateApiKey(config);
       state.isApiKeyValid = true;
       logger.info("API Key validated successfully");
+      
+      const transport = createTransport({
+        mode: config.mode,
+        apiKey: state.apiKey,
+      });
+      setMcpServerTransport(transport);
 
       // 2. Setup/Start Daemon Monitoring
       if (config.mode === "local" && !config.skipDaemon) {
