@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.13](https://github.com/Syncause/mcp-server/compare/v0.1.12...v0.1.13) (2026-02-06)
+
+
+### Features
+
+* add API key fingerprinting for analytics privacy ([e4ff183](https://github.com/Syncause/mcp-server/commit/e4ff18390e6dd929aa68c5d17cd8e07803c69042))
+* enable mcp starts without apiKey ([2a1b555](https://github.com/Syncause/mcp-server/commit/2a1b555e4773e26041abee3c6b6279d88f6c64bf))
+
 ### [0.1.12](https://github.com/Syncause/mcp-server/compare/v0.1.11...v0.1.12) (2026-02-03)
 
 
