@@ -1,16 +1,17 @@
 # Syncause Debug MCP Server
 
-Syncause captures **runtime truth** (stack traces, logs, request/response, function arguments, and key variable values) and makes it queryable by AI agents via **MCP**—so the agent debugs with evidence instead of guessing.
+**Without Syncause**, coding agents often guess and only fix symptoms, so you may need to prompt the agent multiple times to fix the root cause. 
+
+**With Syncause**, agents can fix the root cause in one go. Syncause captures **runtime facts** (stack traces, logs, request/response, function arguments, and key variable values) and makes it queryable by AI agents via **MCP**—so the agent debugs with evidence instead of guessing.
 
 **Use it with:**
-- **Syncause IDE Extension** (recommended) — capture runtime data in your IDE, then query it via MCP.
-- **Syncause Debugger Skill** — a prompt/workflow layer that calls this MCP server.
-
-## Prerequisites
-- Get a free API key at [syn-cause.com/dashboard](https://syn-cause.com/dashboard)
-- Node.js 22.22.0+ or newer
+- [Syncause IDE Extension](https://open-vsx.org/extension/syncause/ai-debugger) — capture runtime data in your IDE, then query it via MCP.
+- [Syncause Debugger Skill](https://github.com/syncause/debug-skill) — a prompt/workflow layer that calls this MCP server.
 
 ## Installation
+> [!NOTE]
+> **API Key Recommended**: Get a free API key at [syn-cause.com/dashboard](https://syn-cause.com/dashboard) for higher rate limits.
+
 Common MCP Configuration works in most of the tools:
 
 ```json
