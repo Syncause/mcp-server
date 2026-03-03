@@ -173,7 +173,8 @@ export async function startMcpServer(projectManager?: ProjectManager) {
     inputSchema: z.object({
       projectId: z.string().describe("The unique identifier of the project."),
       query: z.string().describe("A natural language description of the issue or context you are investigating. It can include specific error messages, symptoms (e.g., 'high latency'), business IDs (e.g., 'order #123'), or any general question about the request execution flow you want to analyze."),
-      limit: z.number().describe("Number of most relevant trace records to return.").default(5)
+      limit: z.number().describe("Number of most relevant trace records to return.").default(5),
+      since: z.string().describe("Optional time range for the search (e.g., '30m', '1h', '1d'). Defaults to empty, which means no time limit.").default("")
     }),
   }, async (args) => await handleToolCall("search_debug_traces", args));
 
